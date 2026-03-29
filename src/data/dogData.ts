@@ -4,27 +4,28 @@
 // ============================================
 
 export const dogData = {
-  name: "[DOG_NAME]",
-  breed: "[BREED]",
-  gender: "male" as "male" | "female", // "male" or "female"
-  dob: "[DOB]", // e.g. "2020-05-15"
-  color: "[COLOR]",
-  microchip: "[MICROCHIP]",
-  notes: "[NOTES]", // medical notes / allergies
-  traits: "Scar on left ear, brown spot on belly", // identifying marks
+  name: "Pepe",
+  breed: "Welsh Corgi Pembroke",
+  gender: "male" as "male" | "female",
+  dob: "March of 2025", 
+  color: "Golden - White",
+  microchip: "9722xxxxxxxx551",
+  notes: "I love belly scratches",
+  traits: "Scar on left ear, brown spot on belly",
   friendlyWith: {
     people: true,
     children: true,
     dogs: true,
+    cats: true
   },
-  imageUrl: "/images/dog-placeholder.jpg", // replace with your dog's photo
+  imageUrl: new URL("../../assets/pepe.jpg", import.meta.url).href,
 };
 
 export const ownerData = {
-  name: "[OWNER_NAME]",
-  phone1: "[PHONE1]", // e.g. "+30 6912345678"
-  phone2: "[PHONE2]",
-  email: "[EMAIL]",
-  location: "[LOCATION]", // e.g. "Athens, Greece"
-  mapsQuery: "[LOCATION]", // used in Google Maps link
+  name: "Rafaella & Giorgos",
+  phone1: "+35799716452",
+  phone2: "+35796222481",
+  email: "gpomportsis@gmail.com",
+  location: "Afroditis 29 Aglantzia, Nicosia",
+  mapsQuery: "Αφροδίτης+29,+Αγλαντζιά+2101,+Κύπρος",
 };
