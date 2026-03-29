@@ -11,7 +11,7 @@ export const dogData = {
   color: "Golden - White",
   microchip: "9722xxxxxxxx551",
   notes: "I love belly scratches",
-  traits: "Scar on left ear, brown spot on belly",
+  traits: "Neck marking appears heart-shaped when viewed sideways",
   friendlyWith: {
     people: true,
     children: true,
@@ -23,7 +23,7 @@ export const dogData = {
 
 export const ownerData = {
   name: "Rafaella & Giorgos",
-  phone1: "+35799716452",
+  phone1: "+35799719451",
   phone2: "+35796222481",
   email: "gpomportsis@gmail.com",
   location: "Afroditis 29 Aglantzia, Nicosia",
