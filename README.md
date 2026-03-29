@@ -1,3 +1,3 @@
-# Welcome to your Lovable project
+# Homebound Buddy Finder
 
-TODO: Document your project here
+Vite + React + TypeScript app for helping users find information about homebound buddies.
