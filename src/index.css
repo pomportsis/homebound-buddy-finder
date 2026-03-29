@@ -8,35 +8,42 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
+    --background: 30 50% 97%;
+    --foreground: 25 30% 15%;
 
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    --card: 35 40% 99%;
+    --card-foreground: 25 30% 15%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
+    --popover: 35 40% 99%;
+    --popover-foreground: 25 30% 15%;
 
-    --primary: 222.2 47.4% 11.2%;
-    --primary-foreground: 210 40% 98%;
+    --primary: 25 85% 55%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
+    --secondary: 35 45% 93%;
+    --secondary-foreground: 25 30% 20%;
 
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
+    --muted: 30 30% 94%;
+    --muted-foreground: 25 15% 45%;
 
-    --accent: 210 40% 96.1%;
-    --accent-foreground: 222.2 47.4% 11.2%;
+    --accent: 145 45% 45%;
+    --accent-foreground: 0 0% 100%;
 
     --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 100%;
 
-    --border: 214.3 31.8% 91.4%;
-    --input: 214.3 31.8% 91.4%;
-    --ring: 222.2 84% 4.9%;
+    --border: 30 25% 88%;
+    --input: 30 25% 88%;
+    --ring: 25 85% 55%;
 
-    --radius: 0.5rem;
+    --radius: 1rem;
+
+    --whatsapp: 142 70% 40%;
+    --whatsapp-foreground: 0 0% 100%;
+    --call: 25 85% 55%;
+    --call-foreground: 0 0% 100%;
+    --maps: 210 70% 50%;
+    --maps-foreground: 0 0% 100%;
 
     --sidebar-background: 0 0% 98%;
 
