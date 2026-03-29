@@ -14,6 +14,9 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
 const DogInfoCard = ({ t }: Props) => {
   const genderText = dogData.gender === "male" ? t.male : t.female;
   const { friendlyWith } = dogData;
+  const colorText = t[dogData.color] ?? dogData.color;
+  const traitsText = t[dogData.traits] ?? dogData.traits;
+  const notesText = t[dogData.notes] ?? dogData.notes;
 
   return (
     <section className="mx-4 mb-4">
@@ -23,16 +26,17 @@ const DogInfoCard = ({ t }: Props) => {
         <InfoRow label={t.breed} value={dogData.breed} />
         <InfoRow label={t.gender} value={genderText} />
         <InfoRow label={t.dob} value={dogData.dob} />
-        <InfoRow label={t.color} value={dogData.color} />
+        <InfoRow label={t.color} value={colorText} />
         <InfoRow label={t.microchip} value={dogData.microchip} />
-        <InfoRow label={t.traits} value={dogData.traits} />
-        <InfoRow label={t.medicalNotes} value={dogData.notes} />
+        <InfoRow label={t.traits} value={traitsText} />
+        <InfoRow label={t.medicalNotes} value={notesText} />
         <div className="pt-3">
           <p className="text-muted-foreground font-medium mb-1">{t.friendly}</p>
           <div className="flex gap-3 flex-wrap">
             {friendlyWith.people && <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm">✅ {t.people}</span>}
             {friendlyWith.children && <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm">✅ {t.children}</span>}
             {friendlyWith.dogs && <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm">✅ {t.dogs}</span>}
+            {friendlyWith.cats && <span className="bg-secondary text-secondary-foreground px-3 py-1 rounded-full text-sm">✅ {t.cats}</span>}
           </div>
         </div>
       </div>

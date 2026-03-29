@@ -8,10 +8,11 @@ export const dogData = {
   breed: "Welsh Corgi Pembroke",
   gender: "male" as "male" | "female",
   dob: "March of 2025", 
-  color: "Golden - White",
+  // Translation keys from src/data/translations.ts
+  color: "dogColor",
   microchip: "9722xxxxxxxx551",
-  notes: "I love belly scratches",
-  traits: "Neck marking appears heart-shaped when viewed sideways",
+  notes: "dogNotes",
+  traits: "dogTraits",
   friendlyWith: {
     people: true,
     children: true,
