@@ -1,7 +1,8 @@
-import { dogData } from "@/data/dogData";
+import { DogProfile } from "@/types/dog";
 
 interface Props {
   t: Record<string, string>;
+  profile: DogProfile;
 }
 
 const InfoRow = ({ label, value }: { label: string; value: string }) => (
@@ -11,25 +12,28 @@ const InfoRow = ({ label, value }: { label: string; value: string }) => (
   </div>
 );
 
-const DogInfoCard = ({ t }: Props) => {
-  const genderText = dogData.gender === "male" ? t.male : t.female;
-  const { friendlyWith } = dogData;
-  const colorText = t[dogData.color] ?? dogData.color;
-  const traitsText = t[dogData.traits] ?? dogData.traits;
-  const notesText = t[dogData.notes] ?? dogData.notes;
+const DogInfoCard = ({ t, profile }: Props) => {
+  const genderText = profile.gender === "male" ? t.male : t.female;
+  const { friendlyWith } = profile;
+  const hasVeterinarian = Boolean(profile.veterinarian?.trim());
+  const colorText = t[profile.color] ?? profile.color;
+  const traitsText = t[profile.traits] ?? profile.traits;
+  const notesText = t[profile.notes] ?? profile.notes;
+  const veterinarianText = t[profile.veterinarian] ?? profile.veterinarian;
 
   return (
     <section className="mx-4 mb-4">
       <div className="bg-card rounded-2xl shadow-md p-5">
         <h2 className="text-xl font-bold text-foreground mb-3">🐕 {t.dogInfo}</h2>
-        <InfoRow label={t.name} value={dogData.name} />
-        <InfoRow label={t.breed} value={dogData.breed} />
+        <InfoRow label={t.name} value={profile.name} />
+        <InfoRow label={t.breed} value={profile.breed} />
         <InfoRow label={t.gender} value={genderText} />
-        <InfoRow label={t.dob} value={dogData.dob} />
+        <InfoRow label={t.dob} value={profile.dob} />
         <InfoRow label={t.color} value={colorText} />
-        <InfoRow label={t.microchip} value={dogData.microchip} />
+        <InfoRow label={t.microchip} value={profile.microchip} />
         <InfoRow label={t.traits} value={traitsText} />
         <InfoRow label={t.medicalNotes} value={notesText} />
+        {hasVeterinarian && <InfoRow label={t.veterinarian} value={veterinarianText} />}
         <div className="pt-3">
           <p className="text-muted-foreground font-medium mb-1">{t.friendly}</p>
           <div className="flex gap-3 flex-wrap">
