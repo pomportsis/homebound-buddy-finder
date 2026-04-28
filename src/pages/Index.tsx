@@ -8,6 +8,7 @@ import ContactSection from "@/components/ContactSection";
 import EmergencySection from "@/components/EmergencySection";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { firebaseEnvWarning } from "@/lib/firebase";
 import { DogProfile, OwnerInfo, VetInfo } from "@/types/dog";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -228,6 +229,11 @@ const Index = () => {
     return (
       <div className="min-h-screen bg-background">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+          {firebaseEnvWarning && (
+            <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
+              Configuration error: {firebaseEnvWarning}
+            </div>
+          )}
           <div className="flex justify-end mb-2">
             <Button asChild variant="outline" size="sm">
               <Link to="/vet-portal">Vet Portal</Link>
