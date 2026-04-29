@@ -21,7 +21,18 @@ const SiteFooter = ({ t }: SiteFooterProps) => {
           ))}
         </nav>
 
-        <p className="mt-4 text-center text-xs text-muted-foreground">© Pomware 2026. {t?.footerCopyright ?? "All rights reserved."}</p>
+        <p className="mt-4 text-center text-xs text-muted-foreground">
+          ©{" "}
+          <a
+            href="https://pomwareltd.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="underline-offset-4 hover:underline"
+          >
+            Pomware
+          </a>{" "}
+          2026. {t?.footerCopyright ?? "All rights reserved."}
+        </p>
       </div>
     </footer>
   );
