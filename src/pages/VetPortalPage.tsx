@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -19,7 +19,7 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Lang, translations } from "@/data/translations";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Eye, Pencil, Trash2, Wifi } from "lucide-react";
+import { Cat, Dog, Eye, Pencil, Trash2, Wifi, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 type VetUserProfile = {
@@ -42,7 +42,29 @@ type PetCardData = {
   name?: string;
   microchip?: string;
   breed?: string;
+  imageUrl?: string;
   collectionName?: "dogs" | "cats";
+};
+
+type PetCsvRow = {
+  species: "dog" | "cat";
+  name: string;
+  breed: string;
+  microchip: string;
+  gender: "male" | "female";
+  dob: string;
+  color: string;
+  traits: string;
+  notes: string;
+  ownerName: string;
+  ownerPhone1: string;
+  ownerPhone2: string;
+  ownerEmail: string;
+  ownerLocation: string;
+  friendlyPeople: boolean;
+  friendlyChildren: boolean;
+  friendlyDogs: boolean;
+  friendlyCats: boolean;
 };
 
 type NewPetForm = {
@@ -75,6 +97,68 @@ const PHONE_RULES: Record<string, { label: string; dial: string; digits: number 
 const countryOptions = Object.entries(PHONE_RULES);
 
 const onlyDigits = (value: string) => value.replace(/\D/g, "");
+
+const CSV_HEADERS: Array<keyof PetCsvRow> = [
+  "species",
+  "name",
+  "breed",
+  "microchip",
+  "gender",
+  "dob",
+  "color",
+  "traits",
+  "notes",
+  "ownerName",
+  "ownerPhone1",
+  "ownerPhone2",
+  "ownerEmail",
+  "ownerLocation",
+  "friendlyPeople",
+  "friendlyChildren",
+  "friendlyDogs",
+  "friendlyCats",
+];
+
+const escapeCsvValue = (value: string) => {
+  const escaped = value.replace(/"/g, '""');
+  return /[",\n]/.test(escaped) ? `"${escaped}"` : escaped;
+};
+
+const toBooleanCsv = (value: boolean) => (value ? "true" : "false");
+
+const parseCsvLine = (line: string) => {
+  const values: string[] = [];
+  let current = "";
+  let inQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        current += '"';
+        i += 1;
+      } else {
+        inQuotes = !inQuotes;
+      }
+      continue;
+    }
+
+    if (char === "," && !inQuotes) {
+      values.push(current.trim());
+      current = "";
+      continue;
+    }
+
+    current += char;
+  }
+
+  values.push(current.trim());
+  return values;
+};
+
+const parseBoolean = (value: string) => ["true", "1", "yes", "y"].includes(value.trim().toLowerCase());
 
 const validatePhone = (country: string, value: string, fieldName: string, ruleTemplate?: string) => {
   const rule = PHONE_RULES[country];
@@ -163,7 +247,11 @@ const VetPortalPage = () => {
   const [editPetExistingImageName, setEditPetExistingImageName] = useState<string | null>(null);
   const [editPetExistingImageUrl, setEditPetExistingImageUrl] = useState<string | null>(null);
   const [editPetMessage, setEditPetMessage] = useState<string | null>(null);
+  const [isImagePreviewOpen, setIsImagePreviewOpen] = useState(false);
+  const [previewImageUrl, setPreviewImageUrl] = useState<string | null>(null);
+  const [previewImageAlt, setPreviewImageAlt] = useState("Pet photo");
   const [requestingActionKey, setRequestingActionKey] = useState<string | null>(null);
+  const [importingCsv, setImportingCsv] = useState(false);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -383,6 +471,7 @@ const VetPortalPage = () => {
             name: data.name ?? "",
             microchip: data.microchip ?? "",
             breed: data.breed ?? "",
+            imageUrl: data.imageUrl ?? "/images/dog-placeholder.jpg",
           };
         });
 
@@ -586,6 +675,26 @@ const VetPortalPage = () => {
     window.open(`${window.location.origin}?id=${petId}`, "_blank");
   };
 
+  const handleOpenImagePreview = (pet: PetCardData) => {
+    setPreviewImageUrl(pet.imageUrl || "/images/dog-placeholder.jpg");
+    setPreviewImageAlt(pet.name ? `${pet.name} photo` : "Pet photo");
+    setIsImagePreviewOpen(true);
+  };
+
+  const handleDeleteRequestWithConfirmation = async (pet: PetCardData) => {
+    const speciesLabel = pet.species === "dog" ? t.vetPortalDog : t.vetPortalCat;
+    const confirmationMessage = t.vetPortalDeleteRequestConfirmMessage
+      .replace("{species}", speciesLabel)
+      .replace("{name}", pet.name?.trim() || "—")
+      .replace("{microchip}", pet.microchip?.trim() || "—");
+
+    if (!window.confirm(confirmationMessage)) {
+      return;
+    }
+
+    await submitPetRequest(pet, "request_delete");
+  };
+
   const submitPetRequest = async (pet: PetCardData, requestType: "request_nfc" | "request_delete") => {
     if (!profile || !currentUser) return;
 
@@ -628,6 +737,171 @@ const VetPortalPage = () => {
       });
     } finally {
       setRequestingActionKey(null);
+    }
+  };
+
+  const handleExportPetsCsv = async () => {
+    if (!profile?.clinicName) return;
+
+    try {
+      const [dogsSnap, catsSnap] = await Promise.all([
+        getDocs(query(collection(db, "dogs"), where("veterinarian", "==", profile.clinicName))),
+        getDocs(query(collection(db, "cats"), where("veterinarian", "==", profile.clinicName))),
+      ]);
+
+      const mapToRow = (data: Record<string, unknown>, species: "dog" | "cat"): PetCsvRow => {
+        const owner = (data.owner as Record<string, string> | undefined) ?? {};
+        const friendlyWith = (data.friendlyWith as Record<string, unknown> | undefined) ?? {};
+        return {
+          species,
+          name: (data.name as string) ?? "",
+          breed: (data.breed as string) ?? "",
+          microchip: (data.microchip as string) ?? "",
+          gender: ((data.gender as "male" | "female") ?? "male"),
+          dob: (data.dob as string) ?? "",
+          color: (data.color as string) ?? "",
+          traits: (data.traits as string) ?? "",
+          notes: (data.notes as string) ?? "",
+          ownerName: owner.name ?? "",
+          ownerPhone1: owner.phone1 ?? "",
+          ownerPhone2: owner.phone2 ?? "",
+          ownerEmail: owner.email ?? "",
+          ownerLocation: owner.location ?? "",
+          friendlyPeople: Boolean(friendlyWith.people),
+          friendlyChildren: Boolean(friendlyWith.children),
+          friendlyDogs: Boolean(friendlyWith.dogs),
+          friendlyCats: Boolean(friendlyWith.cats),
+        };
+      };
+
+      const rows: PetCsvRow[] = [
+        ...dogsSnap.docs.map((petDoc) => mapToRow(petDoc.data() as Record<string, unknown>, "dog")),
+        ...catsSnap.docs.map((petDoc) => mapToRow(petDoc.data() as Record<string, unknown>, "cat")),
+      ];
+
+      const csvHeader = CSV_HEADERS.join(",");
+      const csvRows = rows.map((row) =>
+        CSV_HEADERS.map((header) => {
+          const value = row[header];
+          if (typeof value === "boolean") {
+            return escapeCsvValue(toBooleanCsv(value));
+          }
+          return escapeCsvValue(value ?? "");
+        }).join(","),
+      );
+
+      const csvContent = [csvHeader, ...csvRows].join("\n");
+      const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement("a");
+      const safeClinicName = profile.clinicName.trim().replace(/\s+/g, "-").toLowerCase() || "clinic";
+      anchor.href = url;
+      anchor.download = `${safeClinicName}-pets.csv`;
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
+      URL.revokeObjectURL(url);
+
+      toast({ title: t.vetPortalCsvExportSuccessTitle, description: t.vetPortalCsvExportSuccessDescription });
+    } catch {
+      toast({ title: t.vetPortalRequestFailedTitle, description: t.vetPortalCsvExportFailed, variant: "destructive" });
+    }
+  };
+
+  const handleImportPetsCsv = async (event: ChangeEvent<HTMLInputElement>) => {
+    if (!profile) return;
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    setImportingCsv(true);
+    try {
+      const text = await file.text();
+      const lines = text
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter(Boolean);
+
+      if (lines.length < 2) {
+        throw new Error("empty_csv");
+      }
+
+      const headers = parseCsvLine(lines[0]).map((h) => h.trim());
+      const missingHeaders = CSV_HEADERS.filter((header) => !headers.includes(header));
+      if (missingHeaders.length > 0) {
+        throw new Error("invalid_headers");
+      }
+
+      let importedCount = 0;
+      for (const line of lines.slice(1)) {
+        const values = parseCsvLine(line);
+        const rowMap = headers.reduce<Record<string, string>>((acc, header, index) => {
+          acc[header] = values[index] ?? "";
+          return acc;
+        }, {});
+
+        const species = rowMap.species?.toLowerCase() === "cat" ? "cat" : "dog";
+        const microchip = rowMap.microchip?.trim();
+        if (!microchip) {
+          continue;
+        }
+
+        const targetCollection = species === "cat" ? "cats" : "dogs";
+        const docId = `${species === "cat" ? "C" : "D"}${microchip}`;
+
+        await setDoc(
+          doc(db, targetCollection, docId),
+          {
+            name: rowMap.name ?? "",
+            breed: rowMap.breed ?? "",
+            microchip,
+            gender: rowMap.gender === "female" ? "female" : "male",
+            dob: rowMap.dob ?? "",
+            color: rowMap.color ?? "",
+            traits: rowMap.traits ?? "",
+            notes: rowMap.notes ?? "",
+            veterinarian: profile.clinicName,
+            vet: {
+              name: profile.vetName,
+              phone1: profile.phone,
+              phone2: profile.phone2 ?? "",
+              email: profile.email,
+              location: profile.location,
+              mapsQuery: profile.location,
+            },
+            owner: {
+              name: rowMap.ownerName ?? "",
+              phone1: rowMap.ownerPhone1 ?? "",
+              phone2: rowMap.ownerPhone2 ?? "",
+              email: rowMap.ownerEmail ?? "",
+              location: rowMap.ownerLocation ?? "",
+              mapsQuery: rowMap.ownerLocation ?? "",
+            },
+            friendlyWith: {
+              people: parseBoolean(rowMap.friendlyPeople ?? ""),
+              children: parseBoolean(rowMap.friendlyChildren ?? ""),
+              dogs: parseBoolean(rowMap.friendlyDogs ?? ""),
+              cats: parseBoolean(rowMap.friendlyCats ?? ""),
+            },
+            isPublic: true,
+            updatedAt: serverTimestamp(),
+          },
+          { merge: true },
+        );
+
+        importedCount += 1;
+      }
+
+      await loadClinicPets(profile.clinicName);
+      toast({
+        title: t.vetPortalCsvImportSuccessTitle,
+        description: t.vetPortalCsvImportSuccessDescription.replace("{count}", String(importedCount)),
+      });
+    } catch (error) {
+      const message = error instanceof Error && error.message === "invalid_headers" ? t.vetPortalCsvImportInvalidHeaders : t.vetPortalCsvImportFailed;
+      toast({ title: t.vetPortalRequestFailedTitle, description: message, variant: "destructive" });
+    } finally {
+      setImportingCsv(false);
+      event.target.value = "";
     }
   };
 
@@ -881,7 +1155,12 @@ const VetPortalPage = () => {
                   <CardDescription>{t.vetPortalClinicPetsDescription}</CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="flex justify-end">
+                  <div className="flex flex-wrap justify-end gap-2">
+                    <input id="pets-csv-import" type="file" accept=".csv,text/csv" className="hidden" onChange={(e) => void handleImportPetsCsv(e)} />
+                    <Button type="button" variant="outline" onClick={() => document.getElementById("pets-csv-import")?.click()} disabled={importingCsv}>
+                      {importingCsv ? t.vetPortalPleaseWait : t.vetPortalImportCsv}
+                    </Button>
+                    <Button type="button" variant="outline" onClick={() => void handleExportPetsCsv()}>{t.vetPortalExportCsv}</Button>
                     <Button type="button" onClick={() => setIsAddPetOpen(true)}>{t.vetPortalAddNewPet}</Button>
                   </div>
 
@@ -892,27 +1171,66 @@ const VetPortalPage = () => {
                         <DialogDescription>{t.vetPortalAddPetDialogDescription}</DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleAddPet} className="space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <select
-                            value={newPetForm.species}
-                            onChange={(e) => setNewPetForm((prev) => ({ ...prev, species: e.target.value as "dog" | "cat" }))}
-                            className="h-10 rounded-md border bg-background px-2 text-sm"
-                          >
-                            <option value="dog">{t.vetPortalDog}</option>
-                            <option value="cat">{t.vetPortalCat}</option>
-                          </select>
-                          <Input placeholder={t.name} value={newPetForm.name} onChange={(e) => setNewPetForm((prev) => ({ ...prev, name: e.target.value }))} required />
-                          <Input placeholder={t.breed} value={newPetForm.breed} onChange={(e) => setNewPetForm((prev) => ({ ...prev, breed: e.target.value }))} required />
-                          <Input placeholder={t.microchip} value={newPetForm.microchip} onChange={(e) => setNewPetForm((prev) => ({ ...prev, microchip: e.target.value }))} required />
-                          <Input type="date" value={newPetForm.dob} onChange={(e) => setNewPetForm((prev) => ({ ...prev, dob: e.target.value }))} />
-                          <Input placeholder={t.color} value={newPetForm.color} onChange={(e) => setNewPetForm((prev) => ({ ...prev, color: e.target.value }))} />
-                          <Input placeholder={t.traits} value={newPetForm.traits} onChange={(e) => setNewPetForm((prev) => ({ ...prev, traits: e.target.value }))} />
-                          <Input placeholder={t.medicalNotes} value={newPetForm.notes} onChange={(e) => setNewPetForm((prev) => ({ ...prev, notes: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerName} value={newPetForm.ownerName} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerName: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerPhone} value={newPetForm.ownerPhone1} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerPhone1: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerPhone2} value={newPetForm.ownerPhone2} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerPhone2: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerEmail} type="email" value={newPetForm.ownerEmail} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerLocation} value={newPetForm.ownerLocation} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerLocation: e.target.value }))} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalDog}/{t.vetPortalCat}</Label>
+                            <select
+                              value={newPetForm.species}
+                              onChange={(e) => setNewPetForm((prev) => ({ ...prev, species: e.target.value as "dog" | "cat" }))}
+                              className="h-10 w-full rounded-md border bg-background px-3 text-sm"
+                            >
+                              <option value="dog">{t.vetPortalDog}</option>
+                              <option value="cat">{t.vetPortalCat}</option>
+                            </select>
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.name}</Label>
+                            <Input value={newPetForm.name} onChange={(e) => setNewPetForm((prev) => ({ ...prev, name: e.target.value }))} required />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.breed}</Label>
+                            <Input value={newPetForm.breed} onChange={(e) => setNewPetForm((prev) => ({ ...prev, breed: e.target.value }))} required />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.microchip}</Label>
+                            <Input value={newPetForm.microchip} onChange={(e) => setNewPetForm((prev) => ({ ...prev, microchip: e.target.value }))} required />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.dob}</Label>
+                            <Input type="date" value={newPetForm.dob} onChange={(e) => setNewPetForm((prev) => ({ ...prev, dob: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.color}</Label>
+                            <Input value={newPetForm.color} onChange={(e) => setNewPetForm((prev) => ({ ...prev, color: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.traits}</Label>
+                            <Input value={newPetForm.traits} onChange={(e) => setNewPetForm((prev) => ({ ...prev, traits: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.medicalNotes}</Label>
+                            <Input value={newPetForm.notes} onChange={(e) => setNewPetForm((prev) => ({ ...prev, notes: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerName}</Label>
+                            <Input value={newPetForm.ownerName} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerName: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerPhone}</Label>
+                            <Input value={newPetForm.ownerPhone1} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerPhone1: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerPhone2}</Label>
+                            <Input value={newPetForm.ownerPhone2} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerPhone2: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerEmail}</Label>
+                            <Input type="email" value={newPetForm.ownerEmail} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerLocation}</Label>
+                            <Input value={newPetForm.ownerLocation} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerLocation: e.target.value }))} />
+                          </div>
                         </div>
                         <div className="rounded-md border p-3 space-y-2">
                           <p className="text-sm font-medium">{t.vetPortalFriendlyWithTitle}</p>
@@ -956,11 +1274,25 @@ const VetPortalPage = () => {
                     <div className="space-y-2">
                       {filteredPets.map((pet) => (
                         <div key={pet.id} className="rounded-lg border p-3 flex items-center justify-between gap-4">
-                          <div className="space-y-1">
-                            <p className="font-medium">{pet.name || "—"}</p>
-                            <p className="text-xs text-muted-foreground uppercase">{pet.species}</p>
-                            <p className="text-sm text-muted-foreground">{t.microchip}: {pet.microchip || "—"}</p>
-                            <p className="text-sm text-muted-foreground">{t.breed}: {pet.breed || "—"}</p>
+                          <div className="flex items-center gap-3">
+                            <img
+                              src={pet.imageUrl || "/images/dog-placeholder.jpg"}
+                              alt={pet.name ? `${pet.name} photo` : "Pet photo"}
+                              loading="lazy"
+                              className="h-14 w-14 rounded-md object-cover border cursor-zoom-in"
+                              onClick={() => handleOpenImagePreview(pet)}
+                              onError={(e) => {
+                                e.currentTarget.src = "/images/dog-placeholder.jpg";
+                              }}
+                            />
+                            <div className="space-y-1">
+                              <p className="font-medium flex items-center gap-2">
+                                {pet.species === "dog" ? <Dog className="h-4 w-4 text-muted-foreground" /> : <Cat className="h-4 w-4 text-muted-foreground" />}
+                                <span>{pet.name || "—"}</span>
+                              </p>
+                              <p className="text-sm text-muted-foreground">{t.microchip}: {pet.microchip || "—"}</p>
+                              <p className="text-sm text-muted-foreground">{t.breed}: {pet.breed || "—"}</p>
+                            </div>
                           </div>
                           <div className="flex items-center gap-2">
                             <Tooltip>
@@ -1003,9 +1335,10 @@ const VetPortalPage = () => {
                                   type="button"
                                   variant="outline"
                                   size="icon"
-                                  onClick={() => void submitPetRequest(pet, "request_delete")}
+                                  onClick={() => void handleDeleteRequestWithConfirmation(pet)}
                                   aria-label={t.vetPortalRequestDelete}
                                   disabled={requestingActionKey === `${pet.id}:request_delete`}
+                                  className="hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -1025,19 +1358,55 @@ const VetPortalPage = () => {
                         <DialogDescription>{t.vetPortalEditPetDialogDescription}</DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleEditPet} className="space-y-3">
-                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                          <Input placeholder={t.name} value={editPetForm.name} onChange={(e) => setEditPetForm((prev) => ({ ...prev, name: e.target.value }))} required />
-                          <Input placeholder={t.breed} value={editPetForm.breed} onChange={(e) => setEditPetForm((prev) => ({ ...prev, breed: e.target.value }))} required />
-                          <Input placeholder={t.microchip} value={editPetForm.microchip} onChange={(e) => setEditPetForm((prev) => ({ ...prev, microchip: e.target.value }))} required />
-                          <Input type="date" value={editPetForm.dob} onChange={(e) => setEditPetForm((prev) => ({ ...prev, dob: e.target.value }))} />
-                          <Input placeholder={t.color} value={editPetForm.color} onChange={(e) => setEditPetForm((prev) => ({ ...prev, color: e.target.value }))} />
-                          <Input placeholder={t.traits} value={editPetForm.traits} onChange={(e) => setEditPetForm((prev) => ({ ...prev, traits: e.target.value }))} />
-                          <Input placeholder={t.medicalNotes} value={editPetForm.notes} onChange={(e) => setEditPetForm((prev) => ({ ...prev, notes: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerName} value={editPetForm.ownerName} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerName: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerPhone} value={editPetForm.ownerPhone1} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerPhone1: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerPhone2} value={editPetForm.ownerPhone2} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerPhone2: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerEmail} type="email" value={editPetForm.ownerEmail} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} />
-                          <Input placeholder={t.vetPortalOwnerLocation} value={editPetForm.ownerLocation} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerLocation: e.target.value }))} />
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-1">
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.name}</Label>
+                            <Input value={editPetForm.name} onChange={(e) => setEditPetForm((prev) => ({ ...prev, name: e.target.value }))} required />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.breed}</Label>
+                            <Input value={editPetForm.breed} onChange={(e) => setEditPetForm((prev) => ({ ...prev, breed: e.target.value }))} required />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.microchip}</Label>
+                            <Input value={editPetForm.microchip} onChange={(e) => setEditPetForm((prev) => ({ ...prev, microchip: e.target.value }))} required />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.dob}</Label>
+                            <Input type="date" value={editPetForm.dob} onChange={(e) => setEditPetForm((prev) => ({ ...prev, dob: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.color}</Label>
+                            <Input value={editPetForm.color} onChange={(e) => setEditPetForm((prev) => ({ ...prev, color: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.traits}</Label>
+                            <Input value={editPetForm.traits} onChange={(e) => setEditPetForm((prev) => ({ ...prev, traits: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.medicalNotes}</Label>
+                            <Input value={editPetForm.notes} onChange={(e) => setEditPetForm((prev) => ({ ...prev, notes: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerName}</Label>
+                            <Input value={editPetForm.ownerName} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerName: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerPhone}</Label>
+                            <Input value={editPetForm.ownerPhone1} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerPhone1: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerPhone2}</Label>
+                            <Input value={editPetForm.ownerPhone2} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerPhone2: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerEmail}</Label>
+                            <Input type="email" value={editPetForm.ownerEmail} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} />
+                          </div>
+                          <div className="relative">
+                            <Label className="absolute -top-2 left-2 bg-background px-1 text-xs text-muted-foreground">{t.vetPortalOwnerLocation}</Label>
+                            <Input value={editPetForm.ownerLocation} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerLocation: e.target.value }))} />
+                          </div>
                         </div>
                         <div className="rounded-md border p-3 space-y-2">
                           <p className="text-sm font-medium">{t.vetPortalFriendlyWithTitle}</p>
@@ -1054,9 +1423,35 @@ const VetPortalPage = () => {
                           <Input id="edit-pet-file" type="file" accept="image/*" onChange={(e) => setEditingPetImage(e.target.files?.[0] ?? null)} />
                           <p className="text-xs text-muted-foreground">{editingPetImage?.name ?? editPetExistingImageName ?? t.vetPortalNoFileSelected}</p>
                         </div>
-                        <Button type="submit">{t.vetPortalEditPet}</Button>
+                        <Button type="submit">{t.vetPortalSave}</Button>
                         {editPetMessage && <p className="text-sm text-muted-foreground">{editPetMessage}</p>}
                       </form>
+                    </DialogContent>
+                  </Dialog>
+
+                  <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
+                    <DialogContent className="w-screen h-screen max-w-none rounded-none border-0 bg-black/95 p-2 sm:p-4 md:p-6">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="absolute right-3 top-3 z-50 text-white hover:bg-white/20 hover:text-white"
+                        onClick={() => setIsImagePreviewOpen(false)}
+                        aria-label="Close image preview"
+                      >
+                        <X className="h-5 w-5" />
+                      </Button>
+
+                      <div className="h-full w-full flex items-center justify-center overflow-hidden">
+                        <img
+                          src={previewImageUrl || "/images/dog-placeholder.jpg"}
+                          alt={previewImageAlt}
+                          className="w-auto h-auto max-w-[95vw] max-h-[90vh] object-contain"
+                          onError={(e) => {
+                            e.currentTarget.src = "/images/dog-placeholder.jpg";
+                          }}
+                        />
+                      </div>
                     </DialogContent>
                   </Dialog>
                 </CardContent>
