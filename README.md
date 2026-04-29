@@ -74,3 +74,42 @@ Dog document example:
 ```bash
 npm run dev
 ```
+
+## 5) Firebase Functions (Brevo email notifications for vet requests)
+
+When a vet clicks **Request NFC** or **Request Delete**, a document is created in `vetRequests`.
+The Cloud Function `notifyVetRequestCreated` sends an email to admin/operator through Brevo.
+
+### Install functions dependencies
+
+```bash
+npm --prefix functions install
+```
+
+### Set function secrets (required)
+
+```bash
+npx firebase login
+npx firebase functions:secrets:set BREVO_API_KEY
+npx firebase functions:secrets:set ADMIN_NOTIFICATION_EMAIL
+npx firebase functions:secrets:set NOTIFY_SENDER_EMAIL
+npx firebase functions:secrets:set NOTIFY_SENDER_NAME
+```
+
+When prompted, enter your actual values.
+
+### Build + deploy functions
+
+```bash
+npm --prefix functions run build
+npx firebase deploy --only functions
+```
+
+### Verify
+
+1. In Vet Portal, click **Request NFC** or **Request Delete** on a pet.
+2. Confirm a new doc appears in `vetRequests`.
+3. Confirm admin email is received.
+4. Confirm request doc gets one of:
+   - `notificationStatus: "sent"`
+   - `notificationStatus: "failed"` (with `notificationError`)

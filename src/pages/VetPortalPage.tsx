@@ -7,7 +7,7 @@ import {
   User,
   deleteUser,
 } from "firebase/auth";
-import { collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
 import { auth, db, storage } from "@/lib/firebase";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { Button } from "@/components/ui/button";
@@ -19,7 +19,8 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { Lang, translations } from "@/data/translations";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { Eye, Pencil } from "lucide-react";
+import { Eye, Pencil, Trash2, Wifi } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 
 type VetUserProfile = {
   uid: string;
@@ -162,6 +163,8 @@ const VetPortalPage = () => {
   const [editPetExistingImageName, setEditPetExistingImageName] = useState<string | null>(null);
   const [editPetExistingImageUrl, setEditPetExistingImageUrl] = useState<string | null>(null);
   const [editPetMessage, setEditPetMessage] = useState<string | null>(null);
+  const [requestingActionKey, setRequestingActionKey] = useState<string | null>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, (user) => {
@@ -583,6 +586,51 @@ const VetPortalPage = () => {
     window.open(`${window.location.origin}?id=${petId}`, "_blank");
   };
 
+  const submitPetRequest = async (pet: PetCardData, requestType: "request_nfc" | "request_delete") => {
+    if (!profile || !currentUser) return;
+
+    const actionKey = `${pet.id}:${requestType}`;
+    setRequestingActionKey(actionKey);
+
+    try {
+      await addDoc(collection(db, "vetRequests"), {
+        type: requestType,
+        petId: pet.id,
+        species: pet.species,
+        microchip: pet.microchip ?? "",
+        petName: pet.name ?? "",
+        clinicName: profile.clinicName,
+        vet: {
+          uid: profile.uid,
+          name: profile.vetName,
+          phone1: profile.phone,
+          phone2: profile.phone2 ?? "",
+          email: profile.email,
+          location: profile.location,
+        },
+        requestedBy: {
+          uid: currentUser.uid,
+          email: currentUser.email ?? profile.email,
+        },
+        status: "pending",
+        createdAt: serverTimestamp(),
+      });
+
+      toast({
+        title: t.vetPortalRequestSubmittedTitle,
+        description: requestType === "request_nfc" ? t.vetPortalRequestNfcSubmittedSuccess : t.vetPortalRequestDeleteSubmittedSuccess,
+      });
+    } catch {
+      toast({
+        title: t.vetPortalRequestFailedTitle,
+        description: t.vetPortalRequestSubmitFailed,
+        variant: "destructive",
+      });
+    } finally {
+      setRequestingActionKey(null);
+    }
+  };
+
   if (loadingAuth) {
     return <div className="min-h-screen grid place-items-center">{t.vetPortalLoading}</div>;
   }
@@ -931,6 +979,38 @@ const VetPortalPage = () => {
                                 </Button>
                               </TooltipTrigger>
                               <TooltipContent>{t.vetPortalEditPet}</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => void submitPetRequest(pet, "request_nfc")}
+                                  aria-label={t.vetPortalRequestNfc}
+                                  disabled={requestingActionKey === `${pet.id}:request_nfc`}
+                                >
+                                  <Wifi className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{t.vetPortalRequestNfc}</TooltipContent>
+                            </Tooltip>
+
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <Button
+                                  type="button"
+                                  variant="outline"
+                                  size="icon"
+                                  onClick={() => void submitPetRequest(pet, "request_delete")}
+                                  aria-label={t.vetPortalRequestDelete}
+                                  disabled={requestingActionKey === `${pet.id}:request_delete`}
+                                >
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
+                              </TooltipTrigger>
+                              <TooltipContent>{t.vetPortalRequestDelete}</TooltipContent>
                             </Tooltip>
                           </div>
                         </div>
