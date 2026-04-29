@@ -59,6 +59,10 @@ type NewPetForm = {
   ownerPhone2: string;
   ownerEmail: string;
   ownerLocation: string;
+  friendlyPeople: boolean;
+  friendlyChildren: boolean;
+  friendlyDogs: boolean;
+  friendlyCats: boolean;
 };
 
 const PHONE_RULES: Record<string, { label: string; dial: string; digits: number }> = {
@@ -118,6 +122,10 @@ const initialNewPetForm: NewPetForm = {
   ownerPhone2: "",
   ownerEmail: "",
   ownerLocation: "",
+  friendlyPeople: false,
+  friendlyChildren: false,
+  friendlyDogs: false,
+  friendlyCats: false,
 };
 
 const VetPortalPage = () => {
@@ -489,6 +497,10 @@ const VetPortalPage = () => {
         ownerPhone2: owner.phone2 ?? "",
         ownerEmail: owner.email ?? "",
         ownerLocation: owner.location ?? "",
+        friendlyPeople: Boolean((data.friendlyWith as Record<string, unknown> | undefined)?.people),
+        friendlyChildren: Boolean((data.friendlyWith as Record<string, unknown> | undefined)?.children),
+        friendlyDogs: Boolean((data.friendlyWith as Record<string, unknown> | undefined)?.dogs),
+        friendlyCats: Boolean((data.friendlyWith as Record<string, unknown> | undefined)?.cats),
       });
       setIsEditPetOpen(true);
     } catch {
@@ -534,6 +546,12 @@ const VetPortalPage = () => {
           email: editPetForm.ownerEmail,
           location: editPetForm.ownerLocation,
           mapsQuery: editPetForm.ownerLocation,
+        },
+        friendlyWith: {
+          people: editPetForm.friendlyPeople,
+          children: editPetForm.friendlyChildren,
+          dogs: editPetForm.friendlyDogs,
+          cats: editPetForm.friendlyCats,
         },
         veterinarian: profile.clinicName,
         vet: {
@@ -848,6 +866,16 @@ const VetPortalPage = () => {
                           <Input placeholder={t.vetPortalOwnerEmail} type="email" value={newPetForm.ownerEmail} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} />
                           <Input placeholder={t.vetPortalOwnerLocation} value={newPetForm.ownerLocation} onChange={(e) => setNewPetForm((prev) => ({ ...prev, ownerLocation: e.target.value }))} />
                         </div>
+                        <div className="rounded-md border p-3 space-y-2">
+                          <p className="text-sm font-medium">{t.vetPortalFriendlyWithTitle}</p>
+                          <p className="text-xs text-muted-foreground">{t.vetPortalFriendlyWithAddDescription}</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newPetForm.friendlyPeople} onChange={(e) => setNewPetForm((p) => ({ ...p, friendlyPeople: e.target.checked }))} />{t.people}</label>
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newPetForm.friendlyChildren} onChange={(e) => setNewPetForm((p) => ({ ...p, friendlyChildren: e.target.checked }))} />{t.children}</label>
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newPetForm.friendlyDogs} onChange={(e) => setNewPetForm((p) => ({ ...p, friendlyDogs: e.target.checked }))} />{t.dogs}</label>
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={newPetForm.friendlyCats} onChange={(e) => setNewPetForm((p) => ({ ...p, friendlyCats: e.target.checked }))} />{t.cats}</label>
+                          </div>
+                        </div>
                         <div className="space-y-2">
                           <Label htmlFor="new-pet-file">{t.vetPortalChooseFile}</Label>
                           <Input id="new-pet-file" type="file" accept="image/*" onChange={(e) => setNewPetImage(e.target.files?.[0] ?? null)} />
@@ -930,6 +958,16 @@ const VetPortalPage = () => {
                           <Input placeholder={t.vetPortalOwnerPhone2} value={editPetForm.ownerPhone2} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerPhone2: e.target.value }))} />
                           <Input placeholder={t.vetPortalOwnerEmail} type="email" value={editPetForm.ownerEmail} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerEmail: e.target.value }))} />
                           <Input placeholder={t.vetPortalOwnerLocation} value={editPetForm.ownerLocation} onChange={(e) => setEditPetForm((prev) => ({ ...prev, ownerLocation: e.target.value }))} />
+                        </div>
+                        <div className="rounded-md border p-3 space-y-2">
+                          <p className="text-sm font-medium">{t.vetPortalFriendlyWithTitle}</p>
+                          <p className="text-xs text-muted-foreground">{t.vetPortalFriendlyWithEditDescription}</p>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editPetForm.friendlyPeople} onChange={(e) => setEditPetForm((p) => ({ ...p, friendlyPeople: e.target.checked }))} />{t.people}</label>
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editPetForm.friendlyChildren} onChange={(e) => setEditPetForm((p) => ({ ...p, friendlyChildren: e.target.checked }))} />{t.children}</label>
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editPetForm.friendlyDogs} onChange={(e) => setEditPetForm((p) => ({ ...p, friendlyDogs: e.target.checked }))} />{t.dogs}</label>
+                            <label className="flex items-center gap-2 text-sm"><input type="checkbox" checked={editPetForm.friendlyCats} onChange={(e) => setEditPetForm((p) => ({ ...p, friendlyCats: e.target.checked }))} />{t.cats}</label>
+                          </div>
                         </div>
                         <div className="space-y-2">
                           <Label htmlFor="edit-pet-file">{t.vetPortalChooseFile}</Label>
