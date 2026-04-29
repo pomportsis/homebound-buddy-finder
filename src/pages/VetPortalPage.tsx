@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
+import SiteFooter from "@/components/SiteFooter";
 import { Lang, translations } from "@/data/translations";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
@@ -906,148 +907,157 @@ const VetPortalPage = () => {
   };
 
   if (loadingAuth) {
-    return <div className="min-h-screen grid place-items-center">{t.vetPortalLoading}</div>;
+    return (
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex-1 grid place-items-center">{t.vetPortalLoading}</div>
+        <SiteFooter t={t} />
+      </div>
+    );
   }
 
   if (!currentUser) {
     return (
-      <div className="min-h-screen bg-background py-10 px-4">
-        <div className="max-w-xl mx-auto">
-          <LanguageSwitcher current={lang} onChange={setLang} />
-          <Card>
-            <CardHeader>
-              <CardTitle>{t.vetPortalTitle}</CardTitle>
-              <CardDescription>{t.vetPortalAuthDescription}</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-6">
-              <div className="flex gap-2">
-                <Button variant={authMode === "login" ? "default" : "outline"} onClick={() => setAuthMode("login")}>
-                  {t.vetPortalLogin}
-                </Button>
-                <Button variant={authMode === "register" ? "default" : "outline"} onClick={() => setAuthMode("register")}>
-                  {t.vetPortalRegister}
-                </Button>
-              </div>
-
-              {authMode === "login" ? (
-                <form onSubmit={handleLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="login-email">{t.email}</Label>
-                    <Input id="login-email" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="login-password">{t.vetPortalPassword}</Label>
-                    <Input
-                      id="login-password"
-                      type="password"
-                      value={loginPassword}
-                      onChange={(e) => setLoginPassword(e.target.value)}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" disabled={submitting} className="w-full">
-                    {submitting ? t.vetPortalPleaseWait : t.vetPortalLogin}
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex-1 py-10 px-4">
+          <div className="max-w-xl mx-auto">
+            <LanguageSwitcher current={lang} onChange={setLang} />
+            <Card>
+              <CardHeader>
+                <CardTitle>{t.vetPortalTitle}</CardTitle>
+                <CardDescription>{t.vetPortalAuthDescription}</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="flex gap-2">
+                  <Button variant={authMode === "login" ? "default" : "outline"} onClick={() => setAuthMode("login")}>
+                    {t.vetPortalLogin}
                   </Button>
-                </form>
-              ) : (
-                <form onSubmit={handleRegister} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="clinicName">{t.vetPortalClinicName}</Label>
-                    <Input
-                      id="clinicName"
-                      value={registerForm.clinicName}
-                      onChange={(e) => setRegisterForm((prev) => ({ ...prev, clinicName: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="vetName">{t.vetPortalVetName}</Label>
-                    <Input id="vetName" value={registerForm.vetName} onChange={(e) => setRegisterForm((prev) => ({ ...prev, vetName: e.target.value }))} required />
-                  </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <Button variant={authMode === "register" ? "default" : "outline"} onClick={() => setAuthMode("register")}>
+                    {t.vetPortalRegister}
+                  </Button>
+                </div>
+
+                {authMode === "login" ? (
+                  <form onSubmit={handleLogin} className="space-y-4">
                     <div className="space-y-2">
-                      <Label htmlFor="phone">{t.vetPortalPhone}</Label>
-                      <div className="flex gap-2">
-                        <select
-                          value={registerForm.phoneCountry}
-                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, phoneCountry: e.target.value }))}
-                          className="h-10 rounded-md border bg-background px-2 text-sm"
-                        >
-                          {countryOptions.map(([code, rule]) => (
-                            <option key={code} value={code}>{`${code} ${rule.dial}`}</option>
-                          ))}
-                        </select>
-                        <Input
-                          id="phone"
-                          value={registerForm.phone}
-                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone: onlyDigits(e.target.value) }))}
-                          required
-                        />
+                      <Label htmlFor="login-email">{t.email}</Label>
+                      <Input id="login-email" type="email" value={loginEmail} onChange={(e) => setLoginEmail(e.target.value)} required />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="login-password">{t.vetPortalPassword}</Label>
+                      <Input
+                        id="login-password"
+                        type="password"
+                        value={loginPassword}
+                        onChange={(e) => setLoginPassword(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={submitting} className="w-full">
+                      {submitting ? t.vetPortalPleaseWait : t.vetPortalLogin}
+                    </Button>
+                  </form>
+                ) : (
+                  <form onSubmit={handleRegister} className="space-y-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="clinicName">{t.vetPortalClinicName}</Label>
+                      <Input
+                        id="clinicName"
+                        value={registerForm.clinicName}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, clinicName: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="vetName">{t.vetPortalVetName}</Label>
+                      <Input id="vetName" value={registerForm.vetName} onChange={(e) => setRegisterForm((prev) => ({ ...prev, vetName: e.target.value }))} required />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="phone">{t.vetPortalPhone}</Label>
+                        <div className="flex gap-2">
+                          <select
+                            value={registerForm.phoneCountry}
+                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, phoneCountry: e.target.value }))}
+                            className="h-10 rounded-md border bg-background px-2 text-sm"
+                          >
+                            {countryOptions.map(([code, rule]) => (
+                              <option key={code} value={code}>{`${code} ${rule.dial}`}</option>
+                            ))}
+                          </select>
+                          <Input
+                            id="phone"
+                            value={registerForm.phone}
+                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone: onlyDigits(e.target.value) }))}
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="phone2">{t.vetPortalPhone2}</Label>
+                        <div className="flex gap-2">
+                          <select
+                            value={registerForm.phone2Country}
+                            onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone2Country: e.target.value }))}
+                            className="h-10 rounded-md border bg-background px-2 text-sm"
+                          >
+                            {countryOptions.map(([code, rule]) => (
+                              <option key={code} value={code}>{`${code} ${rule.dial}`}</option>
+                            ))}
+                          </select>
+                          <Input id="phone2" value={registerForm.phone2} onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone2: onlyDigits(e.target.value) }))} />
+                        </div>
                       </div>
                     </div>
                     <div className="space-y-2">
-                      <Label htmlFor="phone2">{t.vetPortalPhone2}</Label>
-                      <div className="flex gap-2">
-                        <select
-                          value={registerForm.phone2Country}
-                          onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone2Country: e.target.value }))}
-                          className="h-10 rounded-md border bg-background px-2 text-sm"
-                        >
-                          {countryOptions.map(([code, rule]) => (
-                            <option key={code} value={code}>{`${code} ${rule.dial}`}</option>
-                          ))}
-                        </select>
-                        <Input id="phone2" value={registerForm.phone2} onChange={(e) => setRegisterForm((prev) => ({ ...prev, phone2: onlyDigits(e.target.value) }))} />
-                      </div>
+                      <Label htmlFor="location">{t.vetPortalLocation}</Label>
+                      <Input
+                        id="location"
+                        value={registerForm.location}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, location: e.target.value }))}
+                        required
+                      />
                     </div>
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="location">{t.vetPortalLocation}</Label>
-                    <Input
-                      id="location"
-                      value={registerForm.location}
-                      onChange={(e) => setRegisterForm((prev) => ({ ...prev, location: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-email">{t.email}</Label>
-                    <Input
-                      id="register-email"
-                      type="email"
-                      value={registerForm.email}
-                      onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="register-password">{t.vetPortalPassword}</Label>
-                    <Input
-                      id="register-password"
-                      type="password"
-                      value={registerForm.password}
-                      onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
-                      required
-                    />
-                  </div>
-                  <Button type="submit" disabled={submitting} className="w-full">
-                    {submitting ? t.vetPortalPleaseWait : t.vetPortalCreateAccount}
-                  </Button>
-                </form>
-              )}
+                    <div className="space-y-2">
+                      <Label htmlFor="register-email">{t.email}</Label>
+                      <Input
+                        id="register-email"
+                        type="email"
+                        value={registerForm.email}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, email: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="register-password">{t.vetPortalPassword}</Label>
+                      <Input
+                        id="register-password"
+                        type="password"
+                        value={registerForm.password}
+                        onChange={(e) => setRegisterForm((prev) => ({ ...prev, password: e.target.value }))}
+                        required
+                      />
+                    </div>
+                    <Button type="submit" disabled={submitting} className="w-full">
+                      {submitting ? t.vetPortalPleaseWait : t.vetPortalCreateAccount}
+                    </Button>
+                  </form>
+                )}
 
-              {authError && <p className="text-sm text-destructive">{authError}</p>}
-            </CardContent>
-          </Card>
+                {authError && <p className="text-sm text-destructive">{authError}</p>}
+              </CardContent>
+            </Card>
+          </div>
         </div>
+        <SiteFooter t={t} />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-10 px-4">
-      <div className="max-w-4xl mx-auto space-y-4">
-        <LanguageSwitcher current={lang} onChange={setLang} />
+    <div className="min-h-screen bg-background flex flex-col">
+      <div className="flex-1 py-10 px-4">
+        <div className="max-w-4xl mx-auto space-y-4">
+          <LanguageSwitcher current={lang} onChange={setLang} />
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">{t.vetPortalTitle}</h1>
           <Button variant="outline" onClick={() => void signOut(auth)}>
@@ -1460,6 +1470,8 @@ const VetPortalPage = () => {
           </Tabs>
         )}
       </div>
+      </div>
+      <SiteFooter t={t} />
     </div>
   );
 };

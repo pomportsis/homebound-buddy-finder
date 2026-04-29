@@ -6,6 +6,7 @@ import HeroSection from "@/components/HeroSection";
 import DogInfoCard from "@/components/DogInfoCard";
 import ContactSection from "@/components/ContactSection";
 import EmergencySection from "@/components/EmergencySection";
+import SiteFooter from "@/components/SiteFooter";
 import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { firebaseEnvWarning } from "@/lib/firebase";
@@ -293,6 +294,8 @@ const Index = () => {
             </div>
           </div>
         )}
+
+        <SiteFooter t={t} />
       </div>
     );
   }
@@ -322,6 +325,8 @@ const Index = () => {
       <footer className="text-center py-6 px-4">
         <p className="text-muted-foreground font-medium">{t.footerThank}</p>
       </footer>
+
+      <SiteFooter t={t} />
     </div>
   );
 };
