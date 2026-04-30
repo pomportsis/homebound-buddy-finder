@@ -228,8 +228,8 @@ const Index = () => {
 
   if (!profile) {
     return (
-      <div className="min-h-screen bg-background">
-        <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-10">
           {firebaseEnvWarning && (
             <div className="mb-4 rounded-md border border-destructive/40 bg-destructive/10 p-3 text-sm text-destructive">
               Configuration error: {firebaseEnvWarning}
@@ -309,25 +309,28 @@ const Index = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background max-w-md mx-auto pb-8">
-      <LanguageSwitcher current={lang} onChange={setLang} />
-      <HeroSection t={t} profile={profile} />
-      <DogInfoCard t={t} profile={profile} />
-      <ContactSection t={t} profile={profile} />
-      <EmergencySection t={t} />
+      <div className="min-h-screen bg-background flex flex-col">
+        <div className="flex-1 max-w-md w-full mx-auto pb-8">
+          <LanguageSwitcher current={lang} onChange={setLang} />
+          <HeroSection t={t} profile={profile} />
+          <DogInfoCard t={t} profile={profile} />
+          <ContactSection t={t} profile={profile} />
+          <EmergencySection t={t} />
 
-      {/* NFC Note */}
-      <p className="text-center text-xs text-muted-foreground px-6 mb-4">
-        📡 {t.nfcNote}
-      </p>
+          {/* NFC Note */}
+          <p className="text-center text-xs text-muted-foreground px-6 mb-4">
+            📡 {t.nfcNote}
+          </p>
 
-      {/* Footer */}
-      <footer className="text-center py-6 px-4">
-        <p className="text-muted-foreground font-medium">{t.footerThank}</p>
-      </footer>
+          {/* Footer */}
+          <footer className="text-center py-6 px-4">
+            <p className="text-muted-foreground font-medium">{t.footerThank}</p>
+          </footer>
+        </div>
 
-      <SiteFooter t={t} />
-    </div>
+        <SiteFooter t={t} />
+      </div>
+    
   );
 };
 

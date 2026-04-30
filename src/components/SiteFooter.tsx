@@ -6,7 +6,7 @@ const SiteFooter = ({ t }: SiteFooterProps) => {
   const links = [
     { href: "#", label: t?.footerTerms ?? "Terms & Conditions" },
     { href: "#", label: t?.footerPrivacy ?? "Privacy Policy" },
-    { href: "#", label: t?.footerPricing ?? "Pricing" },
+    { href: "/pricing", label: t?.footerPricing ?? "Pricing" },
     { href: "#", label: t?.footerAbout ?? "About Us" },
   ];
 

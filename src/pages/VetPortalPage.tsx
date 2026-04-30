@@ -1,4 +1,5 @@
 import { ChangeEvent, FormEvent, useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import {
   onAuthStateChanged,
   signInWithEmailAndPassword,
@@ -920,7 +921,12 @@ const VetPortalPage = () => {
       <div className="min-h-screen bg-background flex flex-col">
         <div className="flex-1 py-10 px-4">
           <div className="max-w-xl mx-auto">
-            <LanguageSwitcher current={lang} onChange={setLang} />
+            <div className="flex justify-between items-center gap-3 mb-2">
+              <Link to="/" className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline">
+                ← Home
+              </Link>
+              <LanguageSwitcher current={lang} onChange={setLang} />
+            </div>
             <Card>
               <CardHeader>
                 <CardTitle>{t.vetPortalTitle}</CardTitle>
@@ -1057,13 +1063,18 @@ const VetPortalPage = () => {
     <div className="min-h-screen bg-background flex flex-col">
       <div className="flex-1 py-10 px-4">
         <div className="max-w-4xl mx-auto space-y-4">
-          <LanguageSwitcher current={lang} onChange={setLang} />
-        <div className="flex items-center justify-between">
-          <h1 className="text-2xl font-bold">{t.vetPortalTitle}</h1>
-          <Button variant="outline" onClick={() => void signOut(auth)}>
-            {t.vetPortalLogout}
-          </Button>
-        </div>
+          <div className="flex justify-between items-center gap-3">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground underline-offset-4 hover:underline">
+              ← Home
+            </Link>
+            <LanguageSwitcher current={lang} onChange={setLang} />
+          </div>
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">{t.vetPortalTitle}</h1>
+            <Button variant="outline" onClick={() => void signOut(auth)}>
+              {t.vetPortalLogout}
+            </Button>
+          </div>
 
         {profileLoading || !profileDraft ? (
           <Card>
@@ -1283,8 +1294,8 @@ const VetPortalPage = () => {
                   ) : (
                     <div className="space-y-2">
                       {filteredPets.map((pet) => (
-                        <div key={pet.id} className="rounded-lg border p-3 flex items-center justify-between gap-4">
-                          <div className="flex items-center gap-3">
+                        <div key={pet.id} className="rounded-lg border p-3 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+                          <div className="flex items-center gap-3 min-w-0">
                             <img
                               src={pet.imageUrl || "/images/dog-placeholder.jpg"}
                               alt={pet.name ? `${pet.name} photo` : "Pet photo"}
@@ -1295,19 +1306,19 @@ const VetPortalPage = () => {
                                 e.currentTarget.src = "/images/dog-placeholder.jpg";
                               }}
                             />
-                            <div className="space-y-1">
+                            <div className="space-y-1 min-w-0">
                               <p className="font-medium flex items-center gap-2">
                                 {pet.species === "dog" ? <Dog className="h-4 w-4 text-muted-foreground" /> : <Cat className="h-4 w-4 text-muted-foreground" />}
                                 <span>{pet.name || "—"}</span>
                               </p>
-                              <p className="text-sm text-muted-foreground">{t.microchip}: {pet.microchip || "—"}</p>
-                              <p className="text-sm text-muted-foreground">{t.breed}: {pet.breed || "—"}</p>
+                              <p className="text-sm text-muted-foreground break-words">{t.microchip}: {pet.microchip || "—"}</p>
+                              <p className="text-sm text-muted-foreground break-words">{t.breed}: {pet.breed || "—"}</p>
                             </div>
                           </div>
-                          <div className="flex items-center gap-2">
+                          <div className="grid w-full grid-cols-2 gap-2 sm:flex sm:w-auto sm:items-center">
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button type="button" variant="outline" size="icon" onClick={() => handleViewPet(pet)} aria-label={t.vetPortalViewPet}>
+                                <Button type="button" variant="outline" size="icon" className="w-full sm:w-10" onClick={() => handleViewPet(pet)} aria-label={t.vetPortalViewPet}>
                                   <Eye className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
@@ -1316,7 +1327,7 @@ const VetPortalPage = () => {
 
                             <Tooltip>
                               <TooltipTrigger asChild>
-                                <Button type="button" variant="outline" size="icon" onClick={() => void handleOpenEditPet(pet)} aria-label={t.vetPortalEditPet}>
+                                <Button type="button" variant="outline" size="icon" className="w-full sm:w-10" onClick={() => void handleOpenEditPet(pet)} aria-label={t.vetPortalEditPet}>
                                   <Pencil className="h-4 w-4" />
                                 </Button>
                               </TooltipTrigger>
@@ -1329,6 +1340,7 @@ const VetPortalPage = () => {
                                   type="button"
                                   variant="outline"
                                   size="icon"
+                                  className="w-full sm:w-10"
                                   onClick={() => void submitPetRequest(pet, "request_nfc")}
                                   aria-label={t.vetPortalRequestNfc}
                                   disabled={requestingActionKey === `${pet.id}:request_nfc`}
@@ -1348,7 +1360,7 @@ const VetPortalPage = () => {
                                   onClick={() => void handleDeleteRequestWithConfirmation(pet)}
                                   aria-label={t.vetPortalRequestDelete}
                                   disabled={requestingActionKey === `${pet.id}:request_delete`}
-                                  className="hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
+                                  className="w-full sm:w-10 hover:bg-destructive hover:text-destructive-foreground hover:border-destructive"
                                 >
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
@@ -1433,23 +1445,28 @@ const VetPortalPage = () => {
                           <Input id="edit-pet-file" type="file" accept="image/*" onChange={(e) => setEditingPetImage(e.target.files?.[0] ?? null)} />
                           <p className="text-xs text-muted-foreground">{editingPetImage?.name ?? editPetExistingImageName ?? t.vetPortalNoFileSelected}</p>
                         </div>
-                        <Button type="submit">{t.vetPortalSave}</Button>
+                        <div className="flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
+                          <Button type="button" variant="outline" onClick={() => setIsEditPetOpen(false)}>
+                            Cancel
+                          </Button>
+                          <Button type="submit" className="min-h-10">{t.vetPortalSave}</Button>
+                        </div>
                         {editPetMessage && <p className="text-sm text-muted-foreground">{editPetMessage}</p>}
                       </form>
                     </DialogContent>
                   </Dialog>
 
                   <Dialog open={isImagePreviewOpen} onOpenChange={setIsImagePreviewOpen}>
-                    <DialogContent className="w-screen h-screen max-w-none rounded-none border-0 bg-black/95 p-2 sm:p-4 md:p-6">
+                    <DialogContent className="w-screen h-screen max-w-none rounded-none border-0 bg-black/95 p-2 pt-16 sm:p-4 sm:pt-16 md:p-6 md:pt-20">
                       <Button
                         type="button"
-                        variant="ghost"
-                        size="icon"
-                        className="absolute right-3 top-3 z-50 text-white hover:bg-white/20 hover:text-white"
+                        variant="secondary"
+                        size="sm"
+                        className="absolute right-3 top-3 z-[60] border border-white/40 bg-black/70 text-white hover:bg-black/90 hover:text-white"
                         onClick={() => setIsImagePreviewOpen(false)}
                         aria-label="Close image preview"
                       >
-                        <X className="h-5 w-5" />
+                        <X className="h-4 w-4 mr-1" /> Close
                       </Button>
 
                       <div className="h-full w-full flex items-center justify-center overflow-hidden">
