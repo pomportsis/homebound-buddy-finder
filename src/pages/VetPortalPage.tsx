@@ -8,7 +8,7 @@ import {
   User,
   deleteUser,
 } from "firebase/auth";
-import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where } from "firebase/firestore";
+import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { auth, db, storage } from "@/lib/firebase";
 import { deleteObject, getDownloadURL, ref, uploadBytes } from "firebase/storage";
 import { Button } from "@/components/ui/button";
@@ -439,16 +439,54 @@ const VetPortalPage = () => {
     }
 
     try {
-      await updateDoc(doc(db, "users", profileDocId), {
-        vetName: profileDraft.vetName,
-        phoneCountry: profileDraft.phoneCountry,
+      const normalizedProfile: VetUserProfile = {
+        ...profileDraft,
         phone: onlyDigits(profileDraft.phone),
         phone2Country: profileDraft.phone2Country ?? "CY",
         phone2: onlyDigits(profileDraft.phone2 ?? ""),
-        location: profileDraft.location,
+      };
+
+      await updateDoc(doc(db, "users", profileDocId), {
+        vetName: normalizedProfile.vetName,
+        phoneCountry: normalizedProfile.phoneCountry,
+        phone: normalizedProfile.phone,
+        phone2Country: normalizedProfile.phone2Country,
+        phone2: normalizedProfile.phone2,
+        location: normalizedProfile.location,
         updatedAt: serverTimestamp(),
       });
-      setProfile(profileDraft);
+
+      const [dogsSnap, catsSnap] = await Promise.all([
+        getDocs(query(collection(db, "dogs"), where("veterinarian", "==", normalizedProfile.clinicName))),
+        getDocs(query(collection(db, "cats"), where("veterinarian", "==", normalizedProfile.clinicName))),
+      ]);
+
+      const allPetDocs = [...dogsSnap.docs, ...catsSnap.docs];
+      const chunkSize = 400;
+      for (let i = 0; i < allPetDocs.length; i += chunkSize) {
+        const chunk = allPetDocs.slice(i, i + chunkSize);
+        const batch = writeBatch(db);
+
+        chunk.forEach((petDoc) => {
+          batch.update(petDoc.ref, {
+            veterinarian: normalizedProfile.clinicName,
+            vet: {
+              name: normalizedProfile.vetName,
+              phone1: normalizedProfile.phone,
+              phone2: normalizedProfile.phone2 ?? "",
+              email: normalizedProfile.email,
+              location: normalizedProfile.location,
+              mapsQuery: normalizedProfile.location,
+            },
+            updatedAt: serverTimestamp(),
+          });
+        });
+
+        await batch.commit();
+      }
+
+      setProfile(normalizedProfile);
+      setProfileDraft(normalizedProfile);
       setProfileMessage(t.vetPortalProfileUpdated);
     } catch {
       setProfileMessage(t.vetPortalProfileUpdateFailed);
