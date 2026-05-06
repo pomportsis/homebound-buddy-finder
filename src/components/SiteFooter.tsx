@@ -7,7 +7,7 @@ const SiteFooter = ({ t }: SiteFooterProps) => {
     { href: "#", label: t?.footerTerms ?? "Terms & Conditions" },
     { href: "#", label: t?.footerPrivacy ?? "Privacy Policy" },
     { href: "/pricing", label: t?.footerPricing ?? "Pricing" },
-    { href: "#", label: t?.footerAbout ?? "About Us" },
+    { href: "/about", label: t?.footerAbout ?? "About Us" },
   ];
 
   return (

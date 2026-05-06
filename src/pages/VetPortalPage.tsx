@@ -7,6 +7,7 @@ import {
   signOut,
   User,
   deleteUser,
+  sendPasswordResetEmail,
 } from "firebase/auth";
 import { addDoc, collection, doc, getDoc, getDocs, query, serverTimestamp, setDoc, updateDoc, where, writeBatch } from "firebase/firestore";
 import { auth, db, storage } from "@/lib/firebase";
@@ -223,8 +224,10 @@ const VetPortalPage = () => {
   const [authMode, setAuthMode] = useState<"login" | "register">("login");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginPassword, setLoginPassword] = useState("");
+  const [showLoginPassword, setShowLoginPassword] = useState(false);
   const [registerForm, setRegisterForm] = useState(initialRegister);
   const [authError, setAuthError] = useState<string | null>(null);
+  const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
   const [profile, setProfile] = useState<VetUserProfile | null>(null);
@@ -400,6 +403,7 @@ const VetPortalPage = () => {
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
     setAuthError(null);
+    setAuthSuccess(null);
     setSubmitting(true);
 
     try {
@@ -408,6 +412,26 @@ const VetPortalPage = () => {
       setLoginPassword("");
     } catch {
       setAuthError(t.vetPortalLoginFailed);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleForgotPassword = async () => {
+    setAuthError(null);
+    setAuthSuccess(null);
+
+    if (!loginEmail.trim()) {
+      setAuthError(t.vetPortalForgotPasswordEnterEmail);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await sendPasswordResetEmail(auth, loginEmail.trim());
+      setAuthSuccess(t.vetPortalForgotPasswordEmailSent);
+    } catch {
+      setAuthError(t.vetPortalForgotPasswordFailed);
     } finally {
       setSubmitting(false);
     }
@@ -988,13 +1012,30 @@ const VetPortalPage = () => {
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="login-password">{t.vetPortalPassword}</Label>
-                      <Input
-                        id="login-password"
-                        type="password"
-                        value={loginPassword}
-                        onChange={(e) => setLoginPassword(e.target.value)}
-                        required
-                      />
+                      <div className="relative">
+                        <Input
+                          id="login-password"
+                          type={showLoginPassword ? "text" : "password"}
+                          value={loginPassword}
+                          onChange={(e) => setLoginPassword(e.target.value)}
+                          className="pr-24"
+                          required
+                        />
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="absolute right-1 top-1/2 h-8 -translate-y-1/2 px-2 text-xs"
+                          onClick={() => setShowLoginPassword((prev) => !prev)}
+                        >
+                          {showLoginPassword ? t.vetPortalHidePassword : t.vetPortalShowPassword}
+                        </Button>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <Button type="button" variant="link" className="h-auto p-0" onClick={() => void handleForgotPassword()} disabled={submitting}>
+                        {t.vetPortalForgotPassword}
+                      </Button>
                     </div>
                     <Button type="submit" disabled={submitting} className="w-full">
                       {submitting ? t.vetPortalPleaseWait : t.vetPortalLogin}
@@ -1088,6 +1129,7 @@ const VetPortalPage = () => {
                 )}
 
                 {authError && <p className="text-sm text-destructive">{authError}</p>}
+                {authSuccess && <p className="text-sm text-green-600">{authSuccess}</p>}
               </CardContent>
             </Card>
           </div>
